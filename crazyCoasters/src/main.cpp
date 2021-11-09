@@ -27,6 +27,7 @@ int numberOfCases = 3;
 // values for updating state pattern
 int pattern = 0;
 int newPattern = 0;
+int count = 0;
 
 #define RXD2 16
 #define TXD2 17
@@ -43,24 +44,15 @@ void updateFSR();
 
 void stateBreathe(float speedFactor)
 {
-    static uint16_t j = 0;
-    for (int i = 0; i < 2500; i++)
-    {
-        float intensity = 255 / 2.0 * (1.0 + sin(speedFactor * i));
-        strip.setBrightness(intensity);
-        for (int i = 0; i < strip.numPixels(); i++)
-        {
-            strip.setPixelColor(i, 4, 90, 32);
-        }
 
-        strip.show();
-        j++;
-        if (j >= 256 * 5)
-        {
-            j = 0;
-        }
-        lastUpdate = millis();
+    float intensity = 255 / 2.0 * (1.0 + sin(speedFactor * count));
+    strip.setBrightness(intensity);
+    for (int i = 0; i < strip.numPixels(); i++)
+    {
+        strip.setPixelColor(i, 4, 90, 32);
     }
+
+    strip.show();
 }
 
 void wipe()
@@ -69,61 +61,7 @@ void wipe()
     {
         strip.setPixelColor(i, strip.Color(0, 0, 0));
     }
-}
-
-void stateRainbow()
-{
-    static uint16_t j = 0;
-    for (long firstPixelHue = 0; firstPixelHue < 1 * 65535; firstPixelHue += 64)
-    {
-        for (int i = 0; i < strip.numPixels(); i++)
-        {
-            int pixelHue = firstPixelHue + (i * 65535 / strip.numPixels());
-            strip.setPixelColor(i, strip.gamma32(strip.ColorHSV(pixelHue)));
-        }
-        strip.show();
-        j++;
-        if (j >= 256 * 5)
-        {
-            j = 0;
-        }
-        lastUpdate = millis();
-    }
-}
-
-void updatePattern(int pat)
-{
-    switch (pat)
-    {
-    case 0:
-        wipe();
-        strip.show();
-        break;
-    case 1:
-        wipe();
-        strip.show();
-        stateRainbow();
-        break;
-    case 2:
-        wipe();
-        strip.show();
-        stateBreathe(SPEED_FACTOR);
-        break;
-    }
-}
-
-void colorWipe(uint32_t c)
-{ // modified from Adafruit example to make it a state machine
-    static int i = 0;
-    strip.setPixelColor(i, c);
     strip.show();
-    i++;
-    if (i >= strip.numPixels())
-    {
-        i = 0;
-        wipe(); // blank out strip
-    }
-    lastUpdate = millis(); // time for next change to the display
 }
 
 // User stub
@@ -178,7 +116,17 @@ void setup()
 void loop()
 {
     updateFSR();
+    if (pattern == 2)
+    {
+        stateBreathe(SPEED_FACTOR);
+    }
+    else
+    {
+        // TODO write code for cup lifted.
+        wipe();
+    }
     mesh.update();
+    count++;
 }
 
 void updateFSR()
@@ -191,22 +139,17 @@ void updateFSR()
         pattern = 0;
         fadeStep = 0;
     }
-    else if (analogReading < 3000)
-    {
-        // Serial.println(analogReading);
-        pattern = 1;
-        fadeStep = 0;
-    }
+    // else if (analogReading < 3000)
+    // {
+    //     // Serial.println(analogReading);
+    //     pattern = 1;
+    //     fadeStep = 0;
+    // }
     else
     {
         // Serial.println(analogReading);
         pattern = 2;
         fadeStep = 0;
-    }
-    // update millis value from last state change
-    if (millis() - lastUpdate > speedInterval)
-    {
-        // updatePattern(pattern);
     }
     if (pattern != newPattern)
     {
